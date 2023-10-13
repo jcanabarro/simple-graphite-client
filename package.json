@@ -1,6 +1,6 @@
 {
   "author": "jcanabarro (https://github.com/jcanabarro)",
-  "name": "simple-graphite-client",
+  "name": "@jcanabarro/simple-graphite-client",
   "description": "Typescript compatible library to send data to a Graphite metrics server.",
   "version": "0.1.0",
   "homepage": "https://github.com/jcanabarro/simple-graphite-client",
@@ -23,5 +23,14 @@
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2",
     "mocha": "^10.2.0"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/jcanabarro/simple-graphite-client/issues"
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
+  },
+  "dependencies": {},
+  "license": "MIT"
 }
