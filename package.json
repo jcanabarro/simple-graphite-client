@@ -2,7 +2,7 @@
   "author": "jcanabarro (https://github.com/jcanabarro)",
   "name": "simple-graphite-client",
   "description": "Typescript compatible library to send data to a Graphite metrics server.",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "homepage": "https://github.com/jcanabarro/simple-graphite-client",
   "repository": {
     "type": "git",
