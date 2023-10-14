@@ -1,6 +1,8 @@
 # simple-graphite-client
 
+[![npm](http://img.shields.io/npm/v/xml-js.svg)](https://www.npmjs.com/package/simple-graphite-client)
 [![Tests](https://github.com/jcanabarro/simple-graphite-client/actions/workflows/test.yml/badge.svg)](https://github.com/jcanabarro/simple-graphite-client/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/github/license/jcanabarro/simple-graphite-client)](https://github.com/jcanabarro/simple-graphite-client/blob/main/LICENSE)
 
 This is a compact TypeScript library designed for transmitting data to a Graphite metrics server (Carbon).
 It draws significant inspiration from [graphyte](https://github.com/benhoyt/graphyte), a Python library.
@@ -15,9 +17,9 @@ npm install simple-graphite-client
 You first have to define the Graphite client:
 
 ```ts
-import graphite from "simple-graphite-client";
+import  Sender  from "simple-graphite-client";
 
-const client = graphite.Sender("http://graphite.example.org");
+const client = new Sender("http://graphite.example.org");
 client.send("foo.bar", 42);
 ```
 
