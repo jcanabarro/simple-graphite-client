@@ -1,6 +1,6 @@
 # simple-graphite-client
 
-[![npm](http://img.shields.io/npm/v/xml-js.svg)](https://www.npmjs.com/package/simple-graphite-client)
+[![npm](https://img.shields.io/node/v/v18.18.1)](https://www.npmjs.com/package/simple-graphite-client)
 [![Tests](https://github.com/jcanabarro/simple-graphite-client/actions/workflows/test.yml/badge.svg)](https://github.com/jcanabarro/simple-graphite-client/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/github/license/jcanabarro/simple-graphite-client)](https://github.com/jcanabarro/simple-graphite-client/blob/main/LICENSE)
 
