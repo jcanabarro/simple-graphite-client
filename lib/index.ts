@@ -85,7 +85,6 @@ export default class Sender {
 
     send(metric: string, value: number, timestamp: number | null = null, tags: Record<string, string> = {}): void {
         const message = this.buildMessage(metric, value, timestamp || Date.now(), tags);
-        console.log(message);
         this.sendMessage(message);
     }
 }
