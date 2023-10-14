@@ -1,17 +1,25 @@
 {
   "author": "jcanabarro (https://github.com/jcanabarro)",
-  "name": "@jcanabarro/simple-graphite-client",
+  "name": "simple-graphite-client",
   "description": "Typescript compatible library to send data to a Graphite metrics server.",
-  "version": "0.1.0",
+  "version": "0.2.3",
   "homepage": "https://github.com/jcanabarro/simple-graphite-client",
   "repository": {
     "type": "git",
     "url": "git://github.com/jcanabarro/simple-graphite-client.git"
   },
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "keywords": [
+    "carbon",
+    "graphite",
+    "metrics",
+    "typescript"
+  ],
   "scripts": {
     "eslint": "eslint .",
     "eslint_fix": "eslint . --fix",
+    "build": "tsc",
     "test": "env TS_NODE_TRANSPILE_ONLY=true mocha -r ts-node/register 'tests/**/**.test.ts'  --timeout 180000 --exit"
   },
   "devDependencies": {

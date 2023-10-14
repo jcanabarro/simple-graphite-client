@@ -1,16 +1,15 @@
 import { createSocket } from "dgram";
 import { createConnection } from "net";
 
-interface Sender {
-    host: string
-    port: number
-    prefix?: string
-    tags?: Record<string, string>
-    protocol?: string
-    timeout?: number
-}
 
-class Sender {
+export default class Sender {
+    host: string;
+    port: number;
+    prefix?: string;
+    tags?: Record<string, string>;
+    protocol?: string;
+    timeout?: number;
+
     constructor(
         host: string,
         port = 2003,
@@ -21,7 +20,7 @@ class Sender {
     ){
         this.host = host;
         this.port = port;
-        this.prefix = prefix;
+        this.prefix = prefix ? `${prefix}.` : "";
         this.protocol = protocol;
         this.tags = tags;
         this.timeout = timeout;
@@ -48,7 +47,7 @@ class Sender {
 
         const tagsSuffix = tagsStrings.join("");
 
-        const message = `${this.prefix ?? ""}${metric}${tagsSuffix} ${value} ${Math.round(timestamp)}\n`;
+        const message = `${this.prefix}${metric}${tagsSuffix} ${value} ${Math.round(timestamp)}\n`;
         return Buffer.from(message, "utf-8");
     }
 
@@ -90,5 +89,3 @@ class Sender {
         this.sendMessage(message);
     }
 }
-
-export {Sender};
