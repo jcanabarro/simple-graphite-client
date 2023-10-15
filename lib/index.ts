@@ -26,7 +26,7 @@ export default class Sender {
         this.timeout = timeout;
     }
 
-    private buildMessage(metric: string, value: number, timestamp: number, tags: Record<string, string> = {}): Buffer {
+    buildMessage(metric: string, value: number, timestamp: number, tags: Record<string, string> = {}): Buffer {
         if (this.hasWhitespace(metric)) {
             throw new Error("\"metric\" must not have whitespace in it");
         }
@@ -51,7 +51,7 @@ export default class Sender {
         return Buffer.from(message, "utf-8");
     }
 
-    private sendMessage(message: Buffer): void {
+    sendMessage(message: Buffer): void {
         if (this.protocol === "tcp") {
             const sock = createConnection({ host: this.host, port: this.port, timeout: this.timeout });
 
@@ -78,7 +78,7 @@ export default class Sender {
         }
     }
 
-    private hasWhitespace(value: string): boolean {
+    hasWhitespace(value: string): boolean {
         return !value || value.split(/\s+/)[0] !== value;
     }
 
