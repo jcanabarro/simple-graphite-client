@@ -1,23 +1,64 @@
 import { createSocket } from "dgram";
 import { createConnection } from "net";
 
+interface SenderConstructor {
+    /**
+     * The host of the graphite server.
+     */
+    host: string;
+    /**
+     * The port of the graphite server. Default value: 2003
+     */
+    port?: number;
+    /**
+     * A prefix to be sent for all your metrics name
+     */
+    prefix?: string;
+    /**
+     * The protocol to be used on the connection. Default value: 'tcp'
+     */
+    protocol?: "tcp" | "udp";
+    /**
+     * The timeout for the connection in seconds. Default value: 5
+     */
+    timeout?: number,
+    /**
+     * Tags to be sent for all your metrics. Ex.: {"tag_key": "tag_value"}
+     */
+    tags?: Record<string, string>
+}
+
+interface SendParameters {
+    /**
+     * metric name
+     */
+    metric: string;
+    /**
+     * metric value
+     */
+    value: number;
+    /**
+     * the timestamp in milliseconds. Default value: new Date().getTime()
+     */
+    timestamp?: number;
+    /**
+     * Tags to be sent for your metric. Ex.: {"tag_key": "tag_value"}
+     */
+    tags?: Record<string, string>;
+}
+
 
 export default class Sender {
-    host: string;
-    port: number;
-    prefix?: string;
-    tags?: Record<string, string>;
-    protocol?: string;
-    timeout?: number;
+    private host: string;
+    private port: number;
+    private prefix: string;
+    private tags: Record<string, string>;
+    private protocol: "tcp" | "udp";
+    private timeout: number;
 
     constructor(
-        host: string,
-        port = 2003,
-        prefix: string | undefined = undefined,
-        protocol = "tcp",
-        timeout = 5,
-        tags: Record<string, string> = {}
-    ){
+        { host, port = 2003, prefix, protocol = "tcp", timeout = 5, tags = {} }: SenderConstructor
+    ) {
         this.host = host;
         this.port = port;
         this.prefix = prefix ? `${prefix}.` : "";
@@ -26,7 +67,7 @@ export default class Sender {
         this.timeout = timeout;
     }
 
-    buildMessage(metric: string, value: number, timestamp: number, tags: Record<string, string> = {}): Buffer {
+    private buildMessage(metric: string, value: number, timestamp: number, tags: Record<string, string> = {}): Buffer {
         if (this.hasWhitespace(metric)) {
             throw new Error("\"metric\" must not have whitespace in it");
         }
@@ -51,40 +92,62 @@ export default class Sender {
         return Buffer.from(message, "utf-8");
     }
 
-    sendMessage(message: Buffer): void {
+    private sendMessage(message: Buffer): Promise<void> {
         if (this.protocol === "tcp") {
-            const sock = createConnection({ host: this.host, port: this.port, timeout: this.timeout });
 
-            sock.once("connect", () => {
-                sock.setKeepAlive(true);
-                sock.write(message);
-            });
+            return new Promise((resolve, reject) => {
 
-            sock.once("error", (err) => {
-                console.error("Socket error:", err);
-                sock.destroy();
+                const sock = createConnection({ host: this.host, port: this.port });
+                sock.setTimeout(this.timeout * 1000);
+
+                sock.once("timeout", () => {
+                    sock.destroy(new Error("Timeout"));
+                });
+
+                sock.once("connect", () => {
+                    sock.setKeepAlive(true);
+                    sock.write(message);
+                    sock.end();
+                });
+
+                sock.on("close", (hadError) => {
+                    if (!hadError) {
+                        resolve();
+                    }
+                });
+
+                sock.once("error", (err) => {
+                    sock.destroy(err);
+                    reject(err);
+                });
+
             });
 
         } else if (this.protocol === "udp") {
-            const sock = createSocket("udp4");
-            sock.send(message, this.port, this.host, (error) => {
-                if (error) {
-                    console.error(`error sending message ${message}: ${error}`);
-                }
-                sock.close();
+            return new Promise((resolve, reject) => {
+                const sock = createSocket("udp4");
+                sock.send(message, this.port, this.host, (error) => {
+                    sock.close();
+
+                    if (error) {
+                        return reject(new Error(`error sending message ${message}: ${error}`));
+                    }
+
+                    resolve();
+                });
             });
         } else {
             throw new Error(`"protocol" must be 'tcp' or 'udp', not ${this.protocol}`);
         }
     }
 
-    hasWhitespace(value: string): boolean {
+    private hasWhitespace(value: string): boolean {
         return !value || value.split(/\s+/)[0] !== value;
     }
 
 
-    send(metric: string, value: number, timestamp: number | null = null, tags: Record<string, string> = {}): void {
-        const message = this.buildMessage(metric, value, timestamp || Date.now(), tags);
-        this.sendMessage(message);
+    async send({ metric, value, timestamp, tags }: SendParameters): Promise<void> {
+        const message = this.buildMessage(metric, value, timestamp || new Date().getTime(), tags);
+        await this.sendMessage(message);
     }
 }

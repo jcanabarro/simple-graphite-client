@@ -24,5 +24,8 @@ jobs:
       - name: Linter Validation
         run: npm run eslint
 
+      - name: Pull and Configure TCP Server
+        run: docker run -d -p 9950:9950 -p 9528:9528 cameritelabs/tcp-receiver:latest
+
       - name: Run tests
         run: npm run test

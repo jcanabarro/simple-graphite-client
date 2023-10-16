@@ -1,79 +1,141 @@
 import Sender from "../lib/index";
-import {expect} from "chai";
+import chai, { expect } from "chai";
+import chaiAsPromised from "chai-as-promised";
+import * as superagent from "superagent";
 
-class TestSender extends Sender {
-    messages: Buffer[] = [];
-
-    constructor(...args: any[]) {
-        super("dummy_host", ...args);
-    }
-
-    send_socket(message: Buffer) {
-        this.messages.push(message);
-    }
-
-    pop_message(): Buffer {
-        if (this.messages.length === 0) {
-            throw new Error("no messages sent");
-        }
-        return this.messages.shift()!;
-    }
-}
+chai.use(chaiAsPromised);
 
 describe("TestBuildMessage", () => {
-    it("test_no_prefix", () => {
-        const sender = new TestSender();
-        expect(sender.buildMessage("foo.bar", 42, 12345)).to.be.eql(Buffer.from("foo.bar 42 12345\n"));
-        expect(sender.buildMessage("boo.far", 42.1, 12345.6)).to.be.eql(Buffer.from("boo.far 42.1 12346\n"));
+    it("test_timeout", async () => {
+        const sender = new Sender({ host: "localhost", port: 9528, timeout: 1 });
+
+        await expect(sender.send({ metric: "foo.bar", value: 42 }))
+            .to.eventually.be.rejectedWith(Error)
+            .and.has.property("message", "Timeout");
+
+        const res = await superagent.get("http://localhost:9528/pop_message").ok(() => true);
+        expect(res.status).to.be.eql(404);
+
     });
 
-    it("test_unicode", () => {
-        const sender = new TestSender();
-        expect(sender.buildMessage("“foo.bar”", 42, 12345)).to.be.eql(Buffer.from("“foo.bar” 42 12345\n"));
+    it("test_no_prefix", async () => {
+        let res: superagent.Response;
+        const sender = new Sender({ host: "localhost", port: 9950 });
+
+        await sender.send({ metric: "foo.bar", value: 42, timestamp: 12345 });
+        res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("foo.bar 42 12345\n");
+
+        await sender.send({ metric: "foo.bar", value: 42.1, timestamp: 12345.6 });
+        res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("foo.bar 42.1 12346\n");
     });
 
-    it("test_prefix", () => {
-        const sender = new TestSender(undefined, "pr.efix");
-        expect(sender.buildMessage("boo.far", 567, 12347)).to.be.eql(Buffer.from("pr.efix.boo.far 567 12347\n"));
+    it("test_unicode", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950 });
+        await sender.send({ metric: "“foo.bar”", value: 42, timestamp: 12345 });
+        const res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("“foo.bar” 42 12345\n");
     });
 
-    it("test_exceptions", () => {
-        const sender = new TestSender();
-        expect(() => sender.buildMessage("foo.bar", "x", 12346)).to.throw(TypeError);
+    it("test_prefix", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950, prefix: "pr.efix" });
+        await sender.send({ metric: "boo.far", value: 567, timestamp: 12347 });
+        const res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("pr.efix.boo.far 567 12347\n");
     });
 
-    it("test_tagging_none", () => {
-        const sender = new TestSender();
-        expect(sender.buildMessage("tag.test", 42, 12345)).to.be.eql(Buffer.from("tag.test 42 12345\n"));
+    it("test_exceptions", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950, prefix: "pr.efix" });
+        await expect(sender.send({ metric: "foo.bar", value: "x" }))
+            .to.eventually.be.rejectedWith(TypeError);
     });
 
-    it("test_tagging_single", () => {
-        const sender = new TestSender();
-        expect(sender.buildMessage("tag.test", 42, 12345, {"foo": "bar"})).to.be.eql(Buffer.from("tag.test;foo=bar 42 12345\n"));
+    it("test_tagging_single", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950 });
+        await sender.send({ metric: "tag.test", value: 42, timestamp: 12345, tags: { "foo": "bar" } });
+        const res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("tag.test;foo=bar 42 12345\n");
     });
 
-    it("test_tagging_multi", () => {
-        const sender = new TestSender();
-        expect(sender.buildMessage("tag.test", 42, 12345, {"foo": "bar", "ding": "dong"})).to.be.eql(Buffer.from("tag.test;foo=bar;ding=dong 42 12345\n"));
+    it("test_tagging_multi", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950 });
+        await sender.send({ metric: "tag.test", value: 42, timestamp: 12345, tags: { "foo": "bar", "ding": "dong" } });
+        const res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("tag.test;foo=bar;ding=dong 42 12345\n");
     });
 
-    it("test_tagging_default", () => {
-        const sender = new TestSender(undefined, undefined, undefined, undefined, {"foo": "bar"});
-        expect(sender.buildMessage("tag.test", 42, 12345)).to.be.eql(Buffer.from("tag.test;foo=bar 42 12345\n"));
+    it("test_tagging_default", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950, tags: { "foo": "bar" } });
+        await sender.send({ metric: "tag.test", value: 42, timestamp: 12345 });
+        const res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("tag.test;foo=bar 42 12345\n");
     });
 
-    it("test_tagging_override", () => {
-        const sender = new TestSender(undefined, undefined, undefined, undefined, {"foo": "bar", "ding": "dong"});
-        expect(sender.buildMessage("tag.test", 42, 12345, {"foo": "not-bar"})).to.be.eql(Buffer.from("tag.test;foo=not-bar;ding=dong 42 12345\n"));
+    it("test_tagging_override", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950, tags: { "foo": "bar", "ding": "dong" } });
+        await sender.send({ metric: "tag.test", value: 42, timestamp: 12345, tags: { "foo": "not-bar" } });
+        const res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("tag.test;foo=not-bar;ding=dong 42 12345\n");
     });
 
-    it("test_tagging_default_no_overlap", () => {
-        const sender = new TestSender(undefined, undefined, undefined, undefined, {"foo": "bar"});
-        expect(sender.buildMessage("tag.test", 42, 12345, {"ding": "dong"})).to.be.eql(Buffer.from("tag.test;foo=bar;ding=dong 42 12345\n"));
+    it("test_tagging_default_no_overlap", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950, tags: { "foo": "bar" } });
+        await sender.send({ metric: "tag.test", value: 42, timestamp: 12345, tags: { "ding": "dong" } });
+        const res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("tag.test;foo=bar;ding=dong 42 12345\n");
     });
 
-    it("test_tagging_default_multi", () => {
-        const sender = new TestSender(undefined, undefined, undefined, undefined, {"foobar": "42", "py": "thon"});
-        expect(sender.buildMessage("tag.test", 42, 12345, {"foo": "bar", "ding": "dong"})).to.be.eql(Buffer.from("tag.test;foobar=42;py=thon;foo=bar;ding=dong 42 12345\n"));
+    it("test_tagging_default_multi", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950, tags: { "foo": "bar", "node": "js" } });
+        await sender.send({ metric: "tag.test", value: 42, timestamp: 12345, tags: { "foo": "bar", "ding": "dong" } });
+        const res = await superagent.get("http://localhost:9528/pop_message");
+        expect(res.text).to.be.eql("tag.test;foo=bar;node=js;ding=dong 42 12345\n");
+    });
+
+    it("test_udp_protocol", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950, protocol: "udp" });
+        await sender.send({ metric: "udp.test", value: 42 });
+    });
+
+    it("test_udp_protocol_with_error", async () => {
+        const sender = new Sender({ host: "invalid_host", port: 9950, protocol: "udp" });
+        await expect(sender.send({ metric: "udp.test", value: 42 }))
+            .to.eventually.be.rejectedWith(Error);
+    });
+
+    it("invalid_protocol", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950, protocol: "xxx" });
+        await expect(sender.send({ metric: "udp.test", value: 42 }))
+            .to.eventually.be.rejectedWith(Error)
+            .and.has.property("message", "\"protocol\" must be 'tcp' or 'udp', not xxx");
+    });
+
+    it("invalid_message", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950 });
+        await expect(sender.send({ metric: "invalid metric", value: 42 }))
+            .to.eventually.be.rejectedWith(Error)
+            .and.has.property("message", "\"metric\" must not have whitespace in it");
+
+    });
+
+    it("invalid_tag_key", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950 });
+        await expect(sender.send({ metric: "invalid.tag", value: 42, tags: { "invalid tag": "bar" } }))
+            .to.eventually.be.rejectedWith(Error)
+            .and.has.property("message", "\"tags\" keys and values must not have whitespace in them");
+
+    });
+
+    it("invalid_tag_value", async () => {
+        const sender = new Sender({ host: "localhost", port: 9950 });
+        await expect(sender.send({ metric: "invalid.tag", value: 42, tags: { "foo": "invalid value" } }))
+            .to.eventually.be.rejectedWith(Error)
+            .and.has.property("message", "\"tags\" keys and values must not have whitespace in them");
+
+    });
+
+    after(async () => {
+        await superagent.get("http://localhost:9528/reset_messages").ok(() => true);
     });
 });
