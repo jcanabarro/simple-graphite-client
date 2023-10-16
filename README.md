@@ -19,17 +19,26 @@ You first have to define the Graphite client:
 ```ts
 import  Sender  from "simple-graphite-client";
 
-const client = new Sender("http://graphite.example.org");
-client.send("foo.bar", 42);
+const client = new Sender({
+     host:"http://graphite.example.org"
+});
+await client.send({
+    metric:"foo.bar",
+    value: 42
+});
 ```
 
 If you want to send tagged metrics, the usage is as follows:
 
 ```ts
-client.send("foo.bar", 42, null, {"ding": "dong"});
+await client.send({
+    metric:"foo.bar",
+    value: 42,
+    tags: {"ding": "dong"}
+});
 ```
 
-If you want to send via UDP instead of TCP, just change `protocol='udp'` to `Sender()` call.
+If you want to send via UDP instead of TCP, just change `protocol:'udp'` to `Sender()` call.
 
 ## License
 
