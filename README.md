@@ -20,10 +20,10 @@ You first have to define the Graphite client:
 import  Sender  from "simple-graphite-client";
 
 const client = new Sender({
-     host:"http://graphite.example.org"
+     host: "http://graphite.example.org"
 });
 await client.send({
-    metric:"foo.bar",
+    metric: "foo.bar",
     value: 42
 });
 ```
@@ -32,7 +32,7 @@ If you want to send tagged metrics, the usage is as follows:
 
 ```ts
 await client.send({
-    metric:"foo.bar",
+    metric: "foo.bar",
     value: 42,
     tags: {"ding": "dong"}
 });
