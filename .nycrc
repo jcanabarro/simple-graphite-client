@@ -1,0 +1,7 @@
+{
+    "exclude": [
+        "tests/",
+        "coverage/"
+    ],
+    "all": true
+}
