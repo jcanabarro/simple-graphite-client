@@ -29,9 +29,21 @@ interface SenderConstructor {
 }
 
 interface SendParameters {
+    /**
+     * metric name
+     */
     metric: string;
+    /**
+     * metric value
+     */
     value: number;
+    /**
+     * the timestamp in milliseconds. Default value: new Date().getTime()
+     */
     timestamp?: number;
+    /**
+     * Tags to be sent for your metric. Ex.: {"tag_key": "tag_value"}
+     */
     tags?: Record<string, string>;
 }
 
@@ -135,7 +147,7 @@ export default class Sender {
 
 
     async send({ metric, value, timestamp, tags }: SendParameters): Promise<void> {
-        const message = this.buildMessage(metric, value, timestamp || Date.now(), tags);
+        const message = this.buildMessage(metric, value, timestamp || new Date().getTime(), tags);
         await this.sendMessage(message);
     }
 }
