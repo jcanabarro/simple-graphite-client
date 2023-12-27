@@ -88,7 +88,7 @@ export default class Sender {
 
         const tagsSuffix = tagsStrings.join("");
 
-        const message = `${this.prefix}${metric}${tagsSuffix} ${value} ${Math.round(timestamp)}\n`;
+        const message = `${this.prefix}${metric}${tagsSuffix} ${value} ${Math.round(timestamp / 1000)}\n`;
         return Buffer.from(message, "utf-8");
     }
 
